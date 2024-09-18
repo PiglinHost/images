@@ -41,4 +41,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/PiglinHost/images:java_${{ matrix.tag }}
+            ghcr.io/piglinhost/images:java_${{ matrix.tag }}
