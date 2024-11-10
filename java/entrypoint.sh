@@ -68,6 +68,44 @@ for run in "${START[@]}"; do
   fi
 done
 
+#FORGE Install
+# Directory to search for .jar files
+search_directory="/home/container/"
+
+# Find all .jar files in /home/container and check if they contain "/minecraftforge/installer/"
+find "$search_directory" -maxdepth 1 -type f -name "*.jar" -a ! -name "*_installed.jar" -exec bash -c '
+    jar_file="$0"
+    # Extract version.json and read "inheritsFrom"
+    if jar xf "$jar_file" version.json 2>/dev/null; then
+        version=$(grep -oP "\"inheritsFrom\": \"\\K[0-9.]+\"" version.json)
+        rm -f version.json
+
+		# Additional processing if required
+        if grep -q "/minecraftforge/installer/" "$jar_file"; then
+            echo "Running installer for $jar_file..."
+            java -jar "$jar_file" --installServer
+            mv "$jar_file" "${jar_file%.jar}_installed.jar"
+        fi
+
+		if [[ -n "$version" ]]; then
+            echo "Found version: $version in $jar_file"
+
+            # Compare version with 1.16.5
+            if [[ "$(printf "%s\n%s" "$version" "1.16.6" | sort -V | head -n 1)" == "$version" && "$version" != "1.16.6" ]]; then
+                echo "Version $version is lower than 1.17"
+				echo "eula=true" >> eula.txt
+				mv forge-*.jar server.jar
+            else
+                echo "Version $version is 1.17 or higher"
+            fi
+        else
+            echo "No version found in $jar_file"
+        fi
+    else
+        echo "version.json not found in $jar_file"
+    fi
+' {} \;
+
 # FTB Install
 find "." -maxdepth 1 -type f -name "*" ! -name "*_installed" -print0 |
 while IFS= read -r -d '' file; do
